@@ -18,10 +18,10 @@ public class MailServerConfig {
      *
      * @throws IOException If there is an issue reading the properties file.
      */
-    public MailServerConfig() throws IOException {
+    public MailServerConfig(String fileLocation) throws IOException {
         properties = new Properties();
         // Load the properties file
-        try (FileInputStream fis = new FileInputStream("mailserver.properties")) {
+        try (FileInputStream fis = new FileInputStream(fileLocation)) {
             properties.load(fis);
         }
     }
