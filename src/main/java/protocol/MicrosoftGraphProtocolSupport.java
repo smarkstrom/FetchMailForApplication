@@ -11,12 +11,16 @@ import com.microsoft.graph.http.IHttpRequest;
 import config.MailServerConfig;
 import io.vavr.collection.List;
 import okhttp3.Request;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import exceptions.MailFetchException;
 
 /**
  * MicrosoftGraphProtocolSupport provides support for fetching emails using Microsoft Graph API.
  */
 public class MicrosoftGraphProtocolSupport {
 
+    private static final Logger logger = LogManager.getLogger(MicrosoftGraphProtocolSupport.class);
     private final MailServerConfig mailServerConfig;
 
     /**
@@ -29,13 +33,14 @@ public class MicrosoftGraphProtocolSupport {
     }
 
     /**
-     * Fetches emails using the Microsoft Graph protocol.
+     * Fetches the oldest unread email using the Microsoft Graph protocol.
      *
-     * @return a list of email messages
-     * @throws Exception if fetching emails fails
+     * @return the content of the oldest unread email
+     * @throws MailFetchException if fetching emails fails
      */
-    public List<String> fetchEmails() throws Exception {
-        List<String> emails = List.empty();
+    public String fetchOldestUnreadEmail() throws MailFetchException {
+        logger.debug("Starting to fetch the oldest unread email using Microsoft Graph.");
+        String emailContent = "";
 
         // Setup the authentication provider
         IAuthenticationProvider authProvider = new IAuthenticationProvider() {
@@ -45,29 +50,36 @@ public class MicrosoftGraphProtocolSupport {
                 Request.Builder requestBuilder = ((Request) request).newBuilder();
                 requestBuilder.header("Authorization", "Bearer " + mailServerConfig.getGraphAccessToken());
                 request = (IHttpRequest) requestBuilder.build();
+                logger.debug("Authentication request has been made.");
             }
         };
 
         // Initialize GraphServiceClient
         GraphServiceClient graphClient = GraphServiceClient.builder().authenticationProvider(authProvider).buildClient();
+        logger.debug("GraphServiceClient has been initialized.");
 
         try {
-            // Fetch messages from the inbox
-            MessageCollectionRequestBuilder requestBuilder = graphClient.me().messages();
-            MessageCollectionRequest request = requestBuilder.buildRequest();
-            MessageCollectionPage messages = request.get();
+            // Fetch the oldest unread message
+            MessageCollectionPage messages = graphClient.me().messages()
+                    .buildRequest()
+                    .filter("isRead eq false")
+                    .top(1)
+                    .orderBy("receivedDateTime asc")
+                    .get();
+            logger.debug("Oldest unread message has been fetched.");
 
-            for (Message message : messages.getCurrentPage()) {
-                String emailContent = "From: " + message.sender.emailAddress.address +
+            if (messages.getCurrentPage().size() > 0) {
+                Message message = messages.getCurrentPage().get(0);
+                emailContent = "From: " + message.sender.emailAddress.address +
                         "\nTo: " + message.toRecipients.get(0).emailAddress.address + // Simplified for the first recipient
                         "\nSubject: " + message.subject +
                         "\nSent Date: " + message.sentDateTime.toString();
-                emails = emails.append(emailContent);
             }
         } catch (ClientException e) {
-            throw new Exception("Failed to fetch emails using Microsoft Graph", e);
+            throw new MailFetchException("Failed to fetch the oldest unread email using Microsoft Graph", e);
         }
 
-        return emails;
+        logger.debug("Finished fetching the oldest unread email using Microsoft Graph.");
+        return emailContent;
     }
 }
