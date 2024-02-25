@@ -1,0 +1,55 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group 'com.yourcompany'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = '21'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Vavr for functional programming in Java
+    implementation 'io.vavr:vavr:0.10.3'
+    // Java Mail API for email fetching
+    implementation 'javax.mail:javax.mail-api:1.6.2'
+    implementation 'com.sun.mail:javax.mail:1.6.2'
+    // Microsoft Graph SDK for Microsoft Graph Protocol
+    implementation 'com.microsoft.graph:microsoft-graph:5.5.0'
+    // Logging
+    implementation 'org.slf4j:slf4j-api:1.7.30'
+    implementation 'ch.qos.logback:logback-classic:1.2.3'
+    // JUnit Jupiter for testing
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+}
+
+application {
+    // Define the main class for the application
+    mainClassName = 'com.yourcompany.App'
+}
+
+// Task to copy the properties files to the build directory
+task copyProperties(type: Copy) {
+    from 'src/main/resources'
+    into "$buildDir/resources/main"
+    include '*.properties'
+}
+
+processResources.dependsOn(copyProperties)
+
+compileJava {
+    options.encoding = 'UTF-8'
+    // Add options here if needed
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}

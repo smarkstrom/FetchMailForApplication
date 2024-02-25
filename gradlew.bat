@@ -1,0 +1,1 @@
+This is a generic version of the `gradlew.bat` file for Gradle version 7.4.2. For your specific project, ensure to generate this file using the `gradle wrapper` command to match your exact Gradle version and setup.
